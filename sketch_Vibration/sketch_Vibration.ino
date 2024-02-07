@@ -41,17 +41,22 @@ int16_t sin_data[SINE_TABLE_SIZE];
 void i2s_initilaize();
 
 int c3_frequency = 100;
-double A = 1.0;
-double beforeA = 0;
+double A1 = 1.0;
+double A2 = 0;
+
 double epsilon = 0.00001; // 許容される誤差
 
 BluetoothA2DPSource a2dp_source;
 bool state = true;
+bool state2 = true;
 
 double angle = 0.0;
 
 uint64_t t = 0;
 
+unsigned long TimeA1 = 0.0;
+unsigned long Timebefore = 0.0;
+unsigned long TimeA2 = 0.0;
 
 // The supported audio codec in ESP32 A2DP is SBC. SBC audio stream is encoded
 // from PCM data normally formatted as 44.1kHz sampling rate, two-channel 16-bit sample data
@@ -117,29 +122,40 @@ void task1(void *param) {
 }
 // タスク2の実行関数
 void task2(void *param) {
+  TimeA1 = millis();
+  TimeA2 = millis();
     while (1) {
-          a2dp_source.set_volume(A*255);
-          //if(c3_frequency == 0) state = false;
-          //if(c3_frequency == 200) state = true;
-          //if(state == false) c3_frequency = c3_frequency + 10;
-          //if(state == true) c3_frequency = c3_frequency - 10;
-          if(fabs(abs(A - 0)) < epsilon) state = false;
-          if(fabs(abs(A - 1)) < epsilon) state = true;
-          if(state == false) A = A + 0.01;
-          if(state == true) A = A - 0.01;
-          //Serial.print("Connected: ");
-          //Serial.println(angle);
-          Serial.println(A);
-          Serial.println(state);
-          //a2dp_source.set_connected(state);
-          delay(100); // change state every minute
+          a2dp_source.set_volume(A1*255);
+          if((millis()-TimeA1) >= 1)
+          {
+            if(fabs(abs(A1 - 0)) < epsilon) state = false;
+            if(fabs(abs(A1 - 1)) < epsilon) state = true;
+            if(state == false) A1 = A1 + 0.01;
+            if(state == true) A1 = A1 - 0.01;
+            Serial.print("A1:");
+            Serial.println(A1);
+            //Serial.println(state);
+          if((millis()-TimeA2) >= 700){
+            if(fabs(abs(A2 - 0)) < epsilon) state2 = false;
+            if(fabs(abs(A2 - 1)) < epsilon) state2 = true;
+            if(state2 == false) A2 = A2 + 0.01;
+            if(state2 == true) A2 = A2 - 0.01;
+            Serial.print("A2:");
+            Serial.println(A2);
+            //Serial.println(state2);
+            if(fabs(abs(A2 - 0)) < epsilon && state2 == true) TimeA2 = millis();
+          }
+            TimeA1 = millis();
+          }else{
+            delay(1);
+          }
     }
 }
 
 void setup() {
   Serial.begin(115200);
   //a2dp_source.set_auto_reconnect(false);
-  a2dp_source.start("EC002", get_data_channels);  
+  a2dp_source.start("BSHSBE200", get_data_channels);  
   a2dp_source.set_volume(255);
   i2s_initilaize();
 
@@ -165,8 +181,8 @@ void loop() {
      sound_buffer[pos*2+0] = 0;
      sound_buffer[pos*2+1] = 0;
     }else{
-      sound_buffer[pos*2+0] = sin_fast(t*SINE_TABLE_CYCLE*(c3_frequency)/I2S_SAMPLE_RATE)*65536*(1.0-A)*0.2;
-      sound_buffer[pos*2+1] = sin_fast(t*SINE_TABLE_CYCLE*(c3_frequency)/I2S_SAMPLE_RATE)*65536*(1.0-A)*0.2;
+      sound_buffer[pos*2+0] = sin_fast(t*SINE_TABLE_CYCLE*(c3_frequency)/I2S_SAMPLE_RATE)*65536*A2;
+      sound_buffer[pos*2+1] = sin_fast(t*SINE_TABLE_CYCLE*(c3_frequency)/I2S_SAMPLE_RATE)*65536*A2;
     }
     t++;
 
