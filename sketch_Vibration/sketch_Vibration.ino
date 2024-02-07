@@ -40,9 +40,11 @@ int16_t sin_data[SINE_TABLE_SIZE];
 
 void i2s_initilaize();
 
-int c3_frequency = 100;
+int c3_frequency = 70;
 double A1 = 1.0;
 double A2 = 0;
+double A1B = 1.0;
+double A2B = 0;
 
 double epsilon = 0.00001; // 許容される誤差
 
@@ -125,13 +127,15 @@ void task2(void *param) {
   TimeA1 = millis();
   TimeA2 = millis();
     while (1) {
-          a2dp_source.set_volume(A1*255);
-          if((millis()-TimeA1) >= 1)
+          a2dp_source.set_volume(A1B*255);
+          if((millis()-TimeA1) >= 10)
           {
             if(fabs(abs(A1 - 0)) < epsilon) state = false;
             if(fabs(abs(A1 - 1)) < epsilon) state = true;
             if(state == false) A1 = A1 + 0.01;
             if(state == true) A1 = A1 - 0.01;
+
+            A1B = A1*A1;
             Serial.print("A1:");
             Serial.println(A1);
             //Serial.println(state);
@@ -142,6 +146,7 @@ void task2(void *param) {
             if(state2 == true) A2 = A2 - 0.01;
             Serial.print("A2:");
             Serial.println(A2);
+            A2B = A2*A2;
             //Serial.println(state2);
             if(fabs(abs(A2 - 0)) < epsilon && state2 == true) TimeA2 = millis();
           }
@@ -176,13 +181,13 @@ void loop() {
     size_t transBytes = SOUND_BUFFER_SIZE*8;
     uint16_t pos = t%SOUND_BUFFER_SIZE;
 
-    if(c3_frequency == 300)
+    if(c3_frequency == 60)
     {
      sound_buffer[pos*2+0] = 0;
      sound_buffer[pos*2+1] = 0;
     }else{
-      sound_buffer[pos*2+0] = sin_fast(t*SINE_TABLE_CYCLE*(c3_frequency)/I2S_SAMPLE_RATE)*65536*A2;
-      sound_buffer[pos*2+1] = sin_fast(t*SINE_TABLE_CYCLE*(c3_frequency)/I2S_SAMPLE_RATE)*65536*A2;
+      sound_buffer[pos*2+0] = sin_fast(t*SINE_TABLE_CYCLE*(c3_frequency)/I2S_SAMPLE_RATE)*65536*A2B;
+      sound_buffer[pos*2+1] = sin_fast(t*SINE_TABLE_CYCLE*(c3_frequency)/I2S_SAMPLE_RATE)*65536*A2B;
     }
     t++;
 
